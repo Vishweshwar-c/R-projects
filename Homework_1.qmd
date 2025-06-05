@@ -1,0 +1,56 @@
+---
+title: "Homework 1- Advance R Programming"
+author: "Vishweshwar Chowdhury; 24205804"
+format: pdf
+execute:
+  echo: false
+editor: visual
+---
+
+## [***Introduction***]{.underline}
+
+The **Nile** dataset is part of base R which records the annual volume of the Nile River's flow at Ashwan, measured in 100 million cubic meters. The data spans 100 years, from 1871 to 1970, and is widely used to illustrate time series analysis.
+
+```{r}
+data(Nile)
+str(Nile)
+```
+
+## [*Dataset Summary*]{.underline}
+
+The dataset contains the following information
+
+-   [**Time Range:**]{.underline}The time ranges from *1871–1970.*
+-   [**Total Observations:**]{.underline} It *shows an overall observation for 100 years*
+-   [**Measurement Unit:**]{.underline} The measurement unit is **10⁸ m³ (100 million cubic meters).**
+
+## [*Plot of the Nile dataset*]{.underline}
+
+```{r}
+# The library ggplot2 is loaded for plotting the graph
+library(ggplot2)
+# The ts object is converted to a data frame before plotting
+nile_df <- data.frame(
+  Year = as.numeric(time(Nile)),  
+  Flow = as.numeric(Nile)
+)
+# Plot of the dataset is done
+ggplot(nile_df, aes(x = Year, y = Flow)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  labs(title = "Annual Flow of the Nile River (1871–1970)",
+       x = "Year",
+       y = "Flow (100 million m³)") +
+  theme_minimal()
+```
+
+## [*Explanation of the Plot*]{.underline}
+
+-   [**The Y-axis**]{.underline}**:** It represents the volume of water flow in the Nile River measured in *100 million cubic meters (m³)*. Values range from around **500 to nearly 1400**, meaning there were years with extreme differences in river flow.
+
+-   [**The X-Axis**:]{.underline} It shows the year ranging from ***1871 to 1970*** and exactly captures 100 years of data.
+
+## [*Major Points:*]{.underline}
+
+-   [**High variability in flow until \~1898**]{.underline}: The flow fluctuated heavily in the early years, peaking around **1878 and 1887**.
+
+-   [***Sudden drop around 1899–1905:***]{.underline} There’s a noticeable *sharp decline* in river flow around the turn of the 20th century. This is believed to be due to *infrastructure developments or climatic shifts*.
