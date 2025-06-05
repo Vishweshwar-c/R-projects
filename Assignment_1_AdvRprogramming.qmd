@@ -1,0 +1,233 @@
+---
+title: "Assignment1-AdvRprogramming"
+author: "Vishweshwar Chowdhury; 24205804"
+format:
+  revealjs:
+    slide-number: true
+    html-math-method: mathjax
+    theme: serif
+    footer: ""
+    incremental: false
+    chalkboard: false
+    menu: true
+    scrollable: true
+    preview-links: false
+    embed-resources: true
+    standalone: true
+    transition: convex
+execute:
+  echo: true
+editor: visual
+---
+
+## Introduction
+
+This project analyzes key development indicators for **France, Kazakhstan, and Ukraine** using World Bank data. We explore trends across areas like health, education, economy, and environment using the data.table package in R.
+
+```{r, echo=FALSE}
+#Loading required Libraries
+library(data.table)
+library(ggplot2)
+library(scales)
+```
+
+## 1) Read Data using data.table and assign correct class to variables {.smaller}
+
+```{r}
+# Reading each country's data
+fra <- fread("indicators_fra.csv")
+kaz <- fread("indicators_kaz.csv")
+ukr <- fread("indicators_ukr.csv")
+options(datatable.print.topn = 3,datatable.print.nrows = 5,width = 80)       
+str(fra)
+head(fra)
+options(datatable.print.topn = 3,datatable.print.nrows = 5,width = 80)       
+str(kaz)
+head(kaz)
+options(datatable.print.topn = 3,datatable.print.nrows = 5,width = 80)       
+str(ukr)
+head(ukr)
+```
+
+## In the above output we can observe the following things:-
+
+-   Each dataset had 6 columns: Country Name, Country ISO3, Year, Indicator Name, Indicator Code, Value.
+
+-   The first row was incorrectly read as data (e.g., #country+name), so it was removed during cleaning. All columns were initially read as character; Year and Value were later converted to integer and numeric respectively.
+
+## 2) Merging Datasets using data.table
+
+```{r}
+# Add a country label to each dataset
+fra[, Country := "France"]
+kaz[, Country := "Kazakhstan"]
+ukr[, Country := "Ukraine"]
+
+# Combine the three datasets into one
+all_data <- rbindlist(list(fra, kaz, ukr),
+use.names = TRUE, fill = TRUE)
+
+# Check structure and preview
+str(all_data)
+head(all_data)
+```
+
+## The merged dataset contains the following things:-
+
+-   The merged dataset contains **222,244 rows** and 7 variables.
+
+-   Column names and structure are consistent across all countries.
+
+-   The resulting dataset allows for cross-country comparisons across years and indicators.
+
+## 3) Data Exploration
+
+```{r}
+# Basic summary
+summary(all_data)
+# Number of unique indicators
+length(unique(all_data$`Indicator Name`))
+# Time coverage
+range(all_data$Year, na.rm = TRUE)
+```
+
+## 
+
+```{r}
+# Count of rows per country
+all_data[, .N, by = Country]
+# Top 5 most common indicators
+all_data[, .N, by = `Indicator Name`][order(-N)][1:5]
+# Missing values check
+colSums(is.na(all_data))
+# Number of observations per year per country
+all_data[, .N, by = .(Country, Year)][order(Country, Year)]
+```
+
+## The findings of the data analysis task are as follows:-
+
+-   The merged dataset has **222,244 rows with 7 character columns**, indicating raw data still needed cleaning.
+
+-   Indicators are diverse, with the most common including:
+
+    -   **Net migration**
+
+    -   **Life expectancy**
+
+    -   **Adolescent fertility rate**
+
+    -   **Under 5-mortality rate**
+
+-   The dataset spans a wide time range — **from 1960 to 2023** - with varying data density per year.
+
+-   France had data available for nearly all years between **1960 and 2023**, with some variation in the number of observations per year.
+
+## 4) Data Analysis task using keyby argument
+
+```{r}
+# Viewing the most common indicators
+all_data[, .N, by = `Indicator Name`][order(-N)][1:20]
+# Filter for selected indicators
+focus_indicators <- c("Mortality rate, under-5 (per 1,000 live births)",
+                      "Net migration",
+                      "Population ages 15-64 (% of total population)")
+
+selected_data <- all_data[`Indicator Name` %in% focus_indicators]
+selected_data[, Value := as.numeric(Value)]
+# Mean values per indicator per country over time
+summary_data <- selected_data[, .(Average = mean(Value, na.rm = TRUE)),
+                              keyby = .(Country, `Indicator Name`, Year)]
+
+head(summary_data)
+```
+
+## The following observations were made from above output:-
+
+1.  Using data.table 5 relevant development indicators were found which are net migration,Adolescent fertility rate , Life expectancy at birth and mortality rate under 5.
+
+2.  The data was grouped and summarized by Country, Indicator Name, and Year using **keyby** to calculate yearly averages.
+
+## 5) Creation of Development Indicators over time plot and Under 5 Mortality Rate over time plot
+
+## Code
+
+```{r}
+# Clean Year column
+all_data <- all_data[!is.na(Year)]             
+all_data <- all_data[Year != "#date+year"]
+
+# Convert Year to numeric
+all_data[, Year := as.integer(Year)]
+
+# Filter indicators
+indicators_to_plot <- c(
+  "Net migration",
+  "Adolescent fertility rate (births per 1,000 women ages 15-19)",
+  "Life expectancy at birth, female (years)",
+  "Life expectancy at birth, male (years)",
+  "Mortality rate, under-5 (per 1,000 live births)"
+)
+
+plot_data <- all_data[`Indicator Name` %in% indicators_to_plot]
+plot_data[, Value := as.numeric(Value)]
+
+# Recalculate summaries
+summary_data <- plot_data[
+  , .(Average = mean(Value, na.rm = TRUE)),
+  keyby = .(Country, `Indicator Name`, Year)
+]
+```
+
+## Creation of Development Indicators over time- Plot
+
+```{r, echo=FALSE, fig.width=12, fig.height=8, warning=FALSE, message=FALSE}
+ggplot(summary_data, aes(x = Year, y = Average, color = Country)) +
+  geom_line(linewidth = 1.2) +
+  facet_wrap(~ `Indicator Name`, 
+  scales = "free", ncol = 2, 
+  labeller = label_wrap_gen(width = 30)) +
+  labs(title = "Development Indicators Over Time",
+       y = "Average Value", x = "Year") +
+  scale_y_continuous(labels = label_comma()) +
+  theme_minimal(base_size = 14) +
+  theme(
+    strip.text = element_text(size = 13, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5)
+  )
+```
+
+## Under 5 mortality rate over time- Plot
+
+```{r, echo=FALSE, fig.width=12, fig.height=8, warning=FALSE, message=FALSE}
+mortality_data <- summary_data[
+  `Indicator Name` == "Mortality rate, under-5 (per 1,000 live births)"
+]
+ggplot(mortality_data, aes(x = Year, y = Average, color = Country)) +
+  geom_line(linewidth = 1.2) +
+  labs(title = "Under-5 Mortality Rate Over Time",
+       y = "Deaths per 1,000 Live Births", x = "Year") +
+  theme_minimal()
+```
+
+## [Plot interpretations]{.underline} {.center}
+
+## 1) Development Indicators over time
+
+-   **Life expectancy (male and female)** shows consistent growth across all countries, with **France** leading, followed by Ukraine and Kazakhstan.
+
+-   **Under-5 mortality rates** have significantly declined in all three countries — reflecting healthcare improvements — **though Kazakhstan started from a much higher rate**.
+
+-   **Adolescent fertility rates** have steadily **declined**, **especially in France**, indicating improved reproductive health awareness.
+
+-   **Net migration** shows **extreme reduction in Ukraine,** likely reflecting the recent **war** between Ukraine and palestine.
+
+## 2) Under-5 Mortality Rate Over Time
+
+-   **Kazakhstan** had the **highest child mortality in the 1960s**, but saw major declines over time.
+
+-   **France** maintained the **lowest under-5 mortality rates throughout the timeline,** reflecting a consistently **strong public health system**.
+
+-   **Ukraine** showed moderate improvement, with a **steady decline from the 1970s to present.**
+
+-   Overall, the plot demonstrates strong downward trends for all three countries, **emphasizing global** **progress in reducing child mortality.**
