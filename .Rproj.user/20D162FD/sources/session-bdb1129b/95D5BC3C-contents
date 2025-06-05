@@ -5,7 +5,7 @@ format:
   revealjs:
     slide-number: true
     html-math-method: mathjax
-    theme: default
+    theme: serif
     footer: ""
     incremental: false
     fragments: true
@@ -15,6 +15,7 @@ format:
     preview-links: false
     embed-resources: true
     standalone: true
+    transition: convex
     
 execute:
   echo: true
